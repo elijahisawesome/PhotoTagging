@@ -1,25 +1,68 @@
-import logo from './logo.svg';
 import './App.css';
+import db from './firebase.js';
+
+import {getAuth, GoogleAuthProvider, signInWithPopup,} from 'firebase/auth';
+import {collection, getData, addDoc, getDocs, deleteDoc, onSnapshot} from 'firebase/firestore';
+import {useAuthState} from 'react-firebase-hooks/auth';
+import {useCollectionData} from 'react-firebase-hooks/firestore';
+import { useEffect , useState} from 'react';
+
+const auth = getAuth();
+
 
 function App() {
+  const [user] = useAuthState(auth);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+      <div>
+        {user? <ChatRoom/> : <SignIn/>}
+      </div>
+  )
 }
 
-export default App;
+function ChatRoom(){
+
+  const [users, setUsers] = useState([])
+
+  useEffect(()=>{
+    const unSub = onSnapshot(collection(db, 'users'), (snapshot)=>{
+      setUsers(snapshot.docs.map(doc=>doc._document.data.value.mapValue.fields));
+    });
+    return unSub;
+  }, []);
+
+  const signOutOfGoogle = function(){
+    auth.signOut();
+  }
+  return(
+    <div>
+      <button onClick = {()=>{signOutOfGoogle()}}>Sign out</button>
+      {users.map(val=>
+          val.born.integerValue + '\n' +val.first.stringValue + '\n' + val.last.stringValue + "\n")}
+      Yr signed in.
+    </div>
+  )
+}
+
+function SignIn(){
+
+
+  const signInWithGoogle = () => {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider);
+  }
+  return(
+    <div>
+      You need to sign in.
+      <button onClick = {signInWithGoogle}>Sign in</button>
+    </div>
+  )
+}
+
+function firebaseWrappedApp(){
+  return(
+      <App/>
+  )
+}
+export default firebaseWrappedApp;
+
